@@ -69,15 +69,16 @@ class DDPG:
         self.actor_target.load_state_dict(self.actor.state_dict())
         self.critic_target.load_state_dict(self.critic.state_dict())
 
+        # using Adam optimizer
+        self.actor_optimizer   = torch.optim.Adam(self.actor.parameters(), args.lr_actor)
+        self.critic_optimizer  = torch.optim.Adam(self.critic.parameters(), args.lr_critic)
+
         if args.cuda :
             self.actor.cuda()
             self.critic.cuda()
             self.actor_target.cuda()
             self.critic_target.cuda()
 
-        # using Adam optimizer
-        self.actor_optimizer   = torch.optim.Adam(self.actor.parameters(), args.lr_actor)
-        self.critic_optimizer  = torch.optim.Adam(self.critic.parameters(), args.lr_critic)
 
         self.env = env
         self.env_params = env_params
@@ -89,16 +90,18 @@ class DDPG:
 
     def generate_action_with_noise(self, obs, noise):
         action = self.actor(torch.Tensor(obs.reshape(1,-1)))
-        action = action.cpu().numpy().squeeze() + noise*np.random.randn(self.env_params['action_dim'])
+        action = action.detach().numpy().squeeze() + noise*np.random.randn(self.env_params['action_dim'])
         return action
 
     def validation(self):
         print(color.BOLD + color.BLUE + "Validating : " + color.END)
         for i in range(10):
             o, r, d, ep_ret, ep_len = self.test_env.reset(), 0, False, 0, 0
+            o = o['observation']
             while not (d or (ep_len == self.args.max_ep_len)):
                 # Take deterministic actions at test time (noise_scale=0)
-                o, r, d, _ = self.test_env.step(self.get_action(o, 0))
+                o, r, d, _ = self.test_env.step(self.generate_action_with_noise(o, 0))
+                o = o['observation']
                 ep_ret += r
                 ep_len += 1
             print("Episode length : {}, Episode reward : {}".format(ep_len, ep_ret))
@@ -163,9 +166,9 @@ class DDPG:
                     #with torch.no_grad():
                     action      = self.actor_target(obs)
                     action_next = self.actor_target(obs_next)
-                    q_next      = self.critic_target(obs_next,action_next)
+                    q_next      = self.critic_target(obs_next,action_next).detach()
 
-                    bellman_backup = (rewards + self.args.gamma * (1-done) * q_next)
+                    bellman_backup = (rewards + self.args.gamma * (1-done) * q_next).detach()
                     q_predicted    =  self.critic(obs, actions)
 
                     # calculating losses
@@ -201,6 +204,8 @@ class DDPG:
                 epoch = step // self.args.steps_in_epoch
 
                 # # Save model
+                torch.save(self.actor.state_dict(), os.path.join(self.args.model_dir, "actor.pth"))
+                torch.save(self.actor.state_dict(), os.path.join(self.args.model_dir, "critic.pth"))
                 # if (epoch % save_freq == 0) or (epoch == self.args.epochs - 1):
                 #     logger.save_state({'env': env}, main, None)
 

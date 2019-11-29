@@ -1,8 +1,13 @@
 import torch
 import gym
+import os
 from algorithms.ddpg import *
 
 def train_agent(args):
+
+    if not os.path.exists(args.model_dir):
+        os.makedirs(args.model_dir)
+
     env = gym.make(args.env_name)
     observation = env.reset()
 

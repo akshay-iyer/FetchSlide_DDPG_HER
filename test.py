@@ -3,7 +3,7 @@ import os
 import gym
 import numpy as np
 
-from networks.actor_critic_mpi import *
+from networks.actor_critic import *
 
 # process the inputs
 def process_inputs(o, g, o_mean, o_std, g_mean, g_std, args):
@@ -16,8 +16,9 @@ def process_inputs(o, g, o_mean, o_std, g_mean, g_std, args):
     return inputs
 
 def test_agent(args):
-    model = os.path.join(args.model_dir, os.path.join(args.env_name, 'model.pt'))
-    o_mean, o_std, g_mean, g_std, model = torch.load(model, map_location=lambda storage, loc: storage)
+    path = os.path.join(args.model_dir, "actor.pth")
+
+    #o_mean, o_std, g_mean, g_std, model = torch.load(model, map_location=lambda storage, loc: storage)
 
     env = gym.make(args.env_name)
     observation = env.reset()
@@ -32,21 +33,23 @@ def test_agent(args):
 
     # create instance of actor for testing model
     actor = Actor(env_params)
-    actor.load_state_dict(model)
+    actor.load_state_dict(torch.load(path))
     actor.eval()
 
     for episode in range(args.test_episodes):
         observation = env.reset()
         obs = observation['observation']
+        obs = torch.tensor(obs, dtype=torch.float32)
         goal    = observation['desired_goal']
         for step in range(env._max_episode_steps):
             env.render()
-            state = process_inputs(obs, goal, o_mean, o_std, g_mean, g_std, args)
+            #state = process_inputs(obs, goal, o_mean, o_std, g_mean, g_std, args)
             # get actions for current state
             with torch.no_grad():
-                actions = actor(state).cpu().numpy().squeeze()
+                actions = actor(obs).cpu().numpy().squeeze()
             # carry out action
             obs_new, reward, _, info = env.step(actions)
             # get next state
             obs = obs_new['observation']
+            obs = torch.tensor(obs, dtype=torch.float32)
         print("Episode number : {} Success : {}".format(episode, info['is_success']))
