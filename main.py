@@ -20,6 +20,9 @@ parser.add_argument('--clip-range',     type=float, default=5,               hel
 parser.add_argument('--lr_actor',       type=float, default=0.001,           help='learning rate for actor')
 parser.add_argument('--lr_critic',      type=float, default=0.001,           help='learning rate for critic')
 parser.add_argument('--noise_scale',    type=float, default=0.1,             help='scaling factor for gaussian noise on action')
+parser.add_argument('--gamma',          type=float, default=0.99,            help='discount factor in bellman equation')
+parser.add_argument('--polyak',         type=float, default=0.995,           help='polyak value for averaging')
+parser.add_argument('--cuda',           type=bool,  default=False,            help='whether to use GPU')
 
 args = parser.parse_args()
 
