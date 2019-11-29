@@ -9,4 +9,12 @@ pip3 install -r requirements.txt
 2. To test using pretrained model : 
 python main.py --phase=test
 
-Training code in progress
+3. To train model :
+Using CPU :
+python main.py --phase=train
+
+Using GPU: (resolving bugs in gpu code)
+python main.py --phase=train --cuda=True
+
+
+
