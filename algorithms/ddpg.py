@@ -15,9 +15,9 @@ class ReplayBuffer:
 
         self.obs1_buffer   = np.zeros([size, obs_dim], dtype=np.float32)
         self.obs2_buffer   = np.zeros([size, obs_dim], dtype=np.float32)
-        self.action_buffer = np.zeros([size, obs_dim], dtype=np.float32)
-        self.reward_buffer = np.zeros([size, obs_dim], dtype=np.float32)
-        self.done_buffer   = np.zeros([size, obs_dim], dtype=np.float32)
+        self.action_buffer = np.zeros([size, act_dim], dtype=np.float32)
+        self.reward_buffer = np.zeros(size           , dtype=np.float32)
+        self.done_buffer   = np.zeros(size           , dtype=np.float32)
 
     def store(self, obs, next_obs, action, reward, done):
         self.obs1_buffer[self.idx]   = obs
@@ -160,17 +160,20 @@ class DDPG:
                         rewards = rewards.cuda()
 
                     # deactivating autograd engine to save memory
-                    with torch.no_grad():
-                        action      = self.actor_target(obs)
-                        action_next = self.actor_target(obs_next)
-                        q_next      = self.critic_target(obs_next,action_next)
+                    #with torch.no_grad():
+                    action      = self.actor_target(obs)
+                    action_next = self.actor_target(obs_next)
+                    q_next      = self.critic_target(obs_next,action_next)
 
-                        bellman_backup = (rewards + self.args.gamma * (1-done) * q_next)
-                        q_predicted    =  self.critic(obs, actions)
+                    bellman_backup = (rewards + self.args.gamma * (1-done) * q_next)
+                    q_predicted    =  self.critic(obs, actions)
 
                     # calculating losses
                     critic_loss = F.mse_loss(q_predicted, bellman_backup)
                     actor_loss  = -self.critic(obs, action).mean()
+
+                    # print(color.BLUE + "Critic loss: {}".format(critic_loss) + color.END)
+                    # print(color.BLUE + "Actor loss: {}".format(actor_loss) + color.END)
 
                     # updating actor (policy) network
                     self.actor_optimizer.zero_grad()
