@@ -6,7 +6,7 @@ from mpi4py import MPI
 import numpy as np
 
 from networks.actor_critic import *
-
+torch.set_default_tensor_type('torch.cuda.FloatTensor')
 class ReplayBuffer:
     def __init__(self, obs_dim, act_dim, size):
         self.idx = 0
@@ -90,7 +90,7 @@ class DDPG:
 
     def generate_action_with_noise(self, obs, noise):
         action = self.actor(torch.Tensor(obs.reshape(1,-1)))
-        action = action.detach().numpy().squeeze() + noise*np.random.randn(self.env_params['action_dim'])
+        action = action.detach().cpu().numpy().squeeze() + noise*np.random.randn(self.env_params['action_dim'])
         return action
 
     def validation(self):
