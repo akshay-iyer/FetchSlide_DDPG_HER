@@ -16,7 +16,7 @@ def process_inputs(o, g, o_mean, o_std, g_mean, g_std, args):
     return inputs
 
 def test_agent(args):
-    model = os.path.join(args.model_dir, os.path.join(args.env_name, 'model.pt'))
+    model = os.path.join("/home/abiyer/Documents/Controls project/hindsight-experience-replay-master/saved_models", os.path.join(args.env_name, 'model.pt'))
     o_mean, o_std, g_mean, g_std, model = torch.load(model, map_location=lambda storage, loc: storage)
 
     env = gym.make(args.env_name)
@@ -41,6 +41,7 @@ def test_agent(args):
         goal    = observation['desired_goal']
         for step in range(env._max_episode_steps):
             env.render()
+            reward = 0
             state = process_inputs(obs, goal, o_mean, o_std, g_mean, g_std, args)
             # get actions for current state
             with torch.no_grad():
@@ -49,4 +50,4 @@ def test_agent(args):
             obs_new, reward, _, info = env.step(actions)
             # get next state
             obs = obs_new['observation']
-        print("Episode number : {} Success : {}".format(episode, info['is_success']))
+        print("Episode number : {} Reward : {} Success : {}".format(episode, reward, info['is_success']))

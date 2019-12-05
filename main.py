@@ -1,14 +1,14 @@
 import argparse
 from networks import actor_critic
 from train import *
-from test import *
+from test_mpi import *
 
 
 parser = argparse.ArgumentParser()
 
 parser.add_argument('--env_name',       type=str,   default='FetchSlide-v1', help='Fetch environment name')
 parser.add_argument('--epochs',         type=int,   default=100,             help='Number of epochs')
-parser.add_argument('--steps_in_epoch', type=int,   default=5000,            help='the times to collect samples per epoch')
+parser.add_argument('--steps_in_epoch', type=int,   default=10000,            help='the times to collect samples per epoch')
 parser.add_argument('--start_steps',    type=int,   default=10000,           help='initial number of steps for random exploration')
 parser.add_argument('--max_ep_len',     type=int,   default=1000,            help='maximum length of episode')
 parser.add_argument('--buff_size',      type=int,   default=int(1e6),        help='size of replay buffer')

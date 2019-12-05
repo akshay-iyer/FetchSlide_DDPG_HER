@@ -43,6 +43,7 @@ def test_agent(args):
         goal    = observation['desired_goal']
         for step in range(env._max_episode_steps):
             env.render()
+            reward = 0
             #state = process_inputs(obs, goal, o_mean, o_std, g_mean, g_std, args)
             # get actions for current state
             with torch.no_grad():
@@ -52,4 +53,4 @@ def test_agent(args):
             # get next state
             obs = obs_new['observation']
             obs = torch.tensor(obs, dtype=torch.float32)
-        print("Episode number : {} Success : {}".format(episode, info['is_success']))
+        print("Episode number : {} Reward : {} Success : {}".format(episode, reward,info['is_success']))
