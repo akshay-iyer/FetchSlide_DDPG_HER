@@ -14,3 +14,7 @@ Are actions used in the bellman equation predicted by main network or the target
 batch size of buffer 32 or 100?
 
 understand episode length and epochs
+
+100,300
+
+eval 200
