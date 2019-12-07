@@ -80,21 +80,39 @@ class DDPG:
             self.actor_target.cuda()
             self.critic_target.cuda()
 
+        self.args = args
+
+        if os.path.isfile(os.path.join(self.args.model_dir, os.path.join(self.args.env_name,"actor.pth"))):
+            self.actor.load_state_dict(torch.load(os.path.join(self.args.model_dir, os.path.join(self.args.env_name,"actor.pth"))))
+            print(color.BOLD + color.YELLOW + "[*] Loaded actor from last checkpoint")
+        if os.path.isfile(os.path.join(self.args.model_dir, os.path.join(self.args.env_name,"actor_target.pth"))):
+            self.actor_target.load_state_dict(torch.load(os.path.join(self.args.model_dir, os.path.join(self.args.env_name,"actor_target.pth"))))
+            print(color.BOLD + color.YELLOW + "[*] Loaded actor target from last checkpoint")
+        if os.path.isfile(os.path.join(self.args.model_dir, os.path.join(self.args.env_name,"critic.pth"))):
+            self.critic.load_state_dict(torch.load(os.path.join(self.args.model_dir, os.path.join(self.args.env_name,"critic.pth"))))
+            print(color.BOLD + color.YELLOW + "[*] Loaded critic from last checkpoint")
+        if os.path.isfile(os.path.join(self.args.model_dir, os.path.join(self.args.env_name,"critic_target.pth"))):
+            self.critic_target.load_state_dict(torch.load(os.path.join(self.args.model_dir, os.path.join(self.args.env_name,"critic_target.pth"))))
+            print(color.BOLD + color.YELLOW + "[*] Loaded critic target from last checkpoint")
+
 
         self.env = env
         self.env_params = env_params
         self.test_env = gym.make(args.env_name).env
 
-        self.args = args
+
 
         self.buffer = ReplayBuffer(self.env_params['obs_dim'], self.env_params['action_dim'], self.args.buff_size)
-
-        # if os.path.isfile(os.path.join(args.model_dir, "actor.pth")):
-        #     relay_buffer = torch.load('BUFFER.pth')
+        buffer_path = os.path.join(self.args.model_dir, os.path.join(self.args.env_name,"buffer.pth"))
+        if os.path.isfile(buffer_path) and os.path.getsize(buffer_path) > 0:
+            self.buffer = torch.load(buffer_path)
+            print(color.BOLD + color.YELLOW + "[*] Loaded last saved buffer")
 
     def generate_action_with_noise(self, obs, noise):
+        self.actor.eval()
         action = self.actor(torch.Tensor(obs.reshape(1,-1)))
         action = action.detach().cpu().numpy().squeeze() + noise*np.random.randn(self.env_params['action_dim'])
+        self.actor.train()
         return np.clip(action, -self.env_params['max_action'], self.env_params['max_action'])
 
     def validation(self):
@@ -200,7 +218,7 @@ class DDPG:
 
                 # deactivating autograd engine to save memory
                 #with torch.no_grad():
-                action      = self.actor_target(obs)
+
                 action_next = self.actor_target(obs_next)
                 #print("[*] Action : {} Action_next : {}".format(action, action_next))
 
@@ -210,24 +228,27 @@ class DDPG:
                 q_predicted    =  self.critic(obs, actions)
 
                 #print("[*] q_pred : {} q_targ : {}".format(q_predicted, bellman_backup))
-                # calculating losses
+                # calculating critic losses and updating it
                 critic_loss = F.mse_loss(q_predicted, bellman_backup)
-                actor_loss  = -self.critic(obs, action).mean()
-
 
 
                 # print(color.BLUE + "Critic loss: {}".format(critic_loss) + color.END)
                 # print(color.BLUE + "Actor loss: {}".format(actor_loss) + color.END)
+
+                # updating critic (Q) network
+                self.critic_optimizer.zero_grad()
+                critic_loss.backward()
+                self.critic_optimizer.step()
+
+                action      = self.actor(obs)
+                actor_loss  = -self.critic(obs, action).mean()
 
                 # updating actor (policy) network
                 self.actor_optimizer.zero_grad()
                 actor_loss.backward()
                 self.actor_optimizer.step()
 
-                # updating critic (Q) network
-                self.critic_optimizer.zero_grad()
-                critic_loss.backward()
-                self.critic_optimizer.step()
+
 
                 # updating target networks with polyak averaging
                 for main_params, target_params in zip(self.actor.parameters(), self.actor_target.parameters()):
@@ -253,14 +274,20 @@ class DDPG:
                 print(color.BOLD + color.BLUE + "Actor loss : " + color.END, actor_loss)
                 # print(color.BOLD + color.BLUE + "Achieved goal : " + color.END, obs_nextt['achieved_goal'])
                 # print(color.BOLD + color.BLUE + "Desired goal : " + color.END, obs_nextt['desired_goal'])
-                print("[*] Number of episodes : ",episode)
+
+                print("[*] Number of episodes : {} Reward : {}".format(episode, episode_reward))
+                #print("[*] Number of episodes : ",episode)
                 print("[*] End of epoch ",epoch)
                 print("---------------------------------------------------------------------")
                 print()
             sys.stdout = original
             # # Save model
-            torch.save(self.actor.state_dict(), os.path.join(self.args.model_dir, "actor.pth"))
-            torch.save(self.actor.state_dict(), os.path.join(self.args.model_dir, "critic.pth"))
+            torch.save(self.actor.state_dict(), os.path.join(self.args.model_dir, os.path.join(self.args.env_name,"actor.pth")))
+            torch.save(self.critic.state_dict(), os.path.join(self.args.model_dir, os.path.join(self.args.env_name,"critic.pth")))
+            torch.save(self.actor_target.state_dict(), os.path.join(self.args.model_dir, os.path.join(self.args.env_name,"actor_target.pth")))
+            torch.save(self.critic_target.state_dict(), os.path.join(self.args.model_dir, os.path.join(self.args.env_name,"critic_target.pth")))
+            # save buffer
+            torch.save(self.buffer, os.path.join(self.args.model_dir, os.path.join(self.args.env_name,"buffer.pth")))
 
             # Test the performance of the deterministic version of the agent.
             #self.validation()

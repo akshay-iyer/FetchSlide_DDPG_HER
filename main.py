@@ -7,8 +7,8 @@ from test_hopper import *
 parser = argparse.ArgumentParser()
 
 parser.add_argument('--env_name',       type=str,   default='FetchSlide-v1', help='Fetch environment name')
-parser.add_argument('--epochs',         type=int,   default=1000,             help='Number of epochs')
-parser.add_argument('--steps_in_epoch', type=int,   default=10000,            help='the times to collect samples per epoch')
+parser.add_argument('--epochs',         type=int,   default=1000,            help='Number of epochs')
+parser.add_argument('--timesteps',      type=int,   default=300,             help='the times to collect samples per epoch')
 parser.add_argument('--start_steps',    type=int,   default=10000,           help='initial number of steps for random exploration')
 parser.add_argument('--max_ep_len',     type=int,   default=1000,            help='maximum length of episode')
 parser.add_argument('--buff_size',      type=int,   default=int(1e6),        help='size of replay buffer')
@@ -20,9 +20,10 @@ parser.add_argument('--clip-range',     type=float, default=5,               hel
 parser.add_argument('--lr_actor',       type=float, default=0.0001,          help='learning rate for actor')
 parser.add_argument('--lr_critic',      type=float, default=0.001,           help='learning rate for critic')
 parser.add_argument('--noise_scale',    type=float, default=0.1,             help='scaling factor for gaussian noise on action')
-parser.add_argument('--gamma',          type=float, default=0.99,            help='discount factor in bellman equation')
-parser.add_argument('--polyak',         type=float, default=0.995,           help='polyak value for averaging')
-parser.add_argument('--cuda',           type=bool,  default=False,            help='whether to use GPU')
+parser.add_argument('--gamma',          type=float, default=0.98,            help='discount factor in bellman equation')
+parser.add_argument('--polyak',         type=float, default=0.999,           help='polyak value for averaging')
+parser.add_argument('--cuda',           type=bool,  default=False,           help='whether to use GPU')
+parser.add_argument('--her',            type=bool,  default=False,            help='whether to use HER')
 
 args = parser.parse_args()
 

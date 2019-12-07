@@ -16,8 +16,8 @@ def process_inputs(o, g, o_mean, o_std, g_mean, g_std, args):
     return inputs
 
 def test_agent(args):
-    path = os.path.join(args.model_dir, "actor.pth")
-
+    path = os.path.join(args.model_dir, os.path.join(args.env_name,"actor.pth"))
+    print(path)
     #o_mean, o_std, g_mean, g_std, model = torch.load(model, map_location=lambda storage, loc: storage)
 
     env = gym.make(args.env_name)
@@ -32,7 +32,7 @@ def test_agent(args):
     }
 
     # create instance of actor for testing model
-    actor = Actor(env_params)
+    actor = Actor(env_params, False)
     actor.load_state_dict(torch.load(path))
     actor.eval()
 
@@ -49,7 +49,10 @@ def test_agent(args):
             with torch.no_grad():
                 actions = actor(obs).cpu().numpy().squeeze()
             # carry out action
-            obs_new, reward, _, info = env.step([actions])
+            if ("Pendulum" in args.env_name):
+                obs_new, reward, _, info = env.step([actions])
+            else:
+                obs_new, reward, _, info = env.step(actions)
             # get next state
             obs = obs_new
             obs = torch.tensor(obs, dtype=torch.float32)
