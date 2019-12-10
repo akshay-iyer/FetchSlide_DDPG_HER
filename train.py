@@ -3,13 +3,14 @@ import gym
 import os
 from algorithms.vanilla_ddpg import *
 from algorithms.ddpg_with_her import *
+from algorithms.ddpg_her_normalizn import *
 
 def train_agent(args):
 
     if not os.path.exists(args.model_dir):
         os.makedirs(args.model_dir)
 
-    env = gym.make(args.env_name).env
+    env = gym.make(args.env_name)
     observation = env.reset()
 
     #print("Initial observation: ", observation)
@@ -26,7 +27,7 @@ def train_agent(args):
     }
 
     if args.her:
-        ddpg_agent = DDPG_HER(args, env, env_params)
+        ddpg_agent = DDPG_HER_N(args, env, env_params)
     else:
         ddpg_agent = DDPG(args, env, env_params)
 

@@ -10,6 +10,7 @@ from time import localtime, strftime
 
 from networks.actor_critic import *
 from .her import *
+from .normalizer import *
 
 torch.set_default_tensor_type('torch.cuda.FloatTensor')
 class ReplayBuffer:
@@ -87,7 +88,7 @@ class OUNoise:
         self.state = x + dx
         return self.state
 
-class DDPG_HER:
+class DDPG_HER_N:
     def __init__(self, args, env, env_params):
         # actor = policy network
         # critic = Q network
@@ -116,23 +117,31 @@ class DDPG_HER:
 
         self.args = args
 
-        if os.path.isfile(os.path.join(self.args.model_dir, os.path.join(self.args.env_name,"model.pt"))):
-            self.actor.load_state_dict(torch.load(os.path.join(self.args.model_dir, os.path.join(self.args.env_name,"model.pt"))))
-            print(color.BOLD + color.YELLOW + "[*] Loaded actor from last checkpoint"+ color.END)
-        # if os.path.isfile(os.path.join(self.args.model_dir, os.path.join(self.args.env_name,"actor_target_her.pth"))):
-        #     self.actor_target.load_state_dict(torch.load(os.path.join(self.args.model_dir, os.path.join(self.args.env_name,"actor_target_her.pth"))))
-        #     print(color.BOLD + color.YELLOW + "[*] Loaded actor target from last checkpoint"+ color.END)
+        # create the normalizer
+        self.o_norm = normalizer(size=env_params['obs_dim'], default_clip_range=self.args.clip_range)
+        self.g_norm = normalizer(size=env_params['goal_dim'], default_clip_range=self.args.clip_range)
+
+        actor_model_path = os.path.join(self.args.model_dir, os.path.join(self.args.env_name,"model.pt"))
+        if os.path.isfile(actor_model_path):
+            self.o_norm.mean, self.o_norm.std, self.g_norm.mean, self.g_norm.std, actor_model = torch.load(actor_model_path, map_location=lambda storage, loc: storage)
+
+            self.actor.load_state_dict(actor_model)
+            print(color.BOLD + color.YELLOW + "[*] Loaded actor from pretrained model"+ color.END)
+        if os.path.isfile(os.path.join(self.args.model_dir, os.path.join(self.args.env_name,"actor_target_her.pth"))):
+            self.actor_target.load_state_dict(torch.load(os.path.join(self.args.model_dir, os.path.join(self.args.env_name,"actor_target_her.pth"))))
+            print(color.BOLD + color.YELLOW + "[*] Loaded actor target from last checkpoint"+ color.END)
         if os.path.isfile(os.path.join(self.args.model_dir, os.path.join(self.args.env_name,"critic_her.pth"))):
             self.critic.load_state_dict(torch.load(os.path.join(self.args.model_dir, os.path.join(self.args.env_name,"critic_her.pth"))))
             print(color.BOLD + color.YELLOW + "[*] Loaded critic from last checkpoint"+ color.END)
         # if os.path.isfile(os.path.join(self.args.model_dir, os.path.join(self.args.env_name,"critic_target_her.pth"))):
-        #     self.critic_target.load_state_dict(torch.load(os.path.join(self.args.model_dir, os.path.join(self.args.env_name,"critic_target_her.pth"))))
-        #     print(color.BOLD + color.YELLOW + "[*] Loaded critic target from last checkpoint"+ color.END)
+            self.critic_target.load_state_dict(torch.load(os.path.join(self.args.model_dir, os.path.join(self.args.env_name,"critic_target_her.pth"))))
+            print(color.BOLD + color.YELLOW + "[*] Loaded critic target from last checkpoint"+ color.END)
 
         self.env = env
         self.env_params = env_params
         self.test_env = gym.make(args.env_name).env
         self.her_object = HER(self.env.compute_reward)
+
 
         self.ou_noise = OUNoise(self.env_params['action_dim'], 123)
 
@@ -145,7 +154,7 @@ class DDPG_HER:
     def _generate_action_with_noise(self, obs, noise):
         self.actor.eval()
         action = self.actor(torch.Tensor(obs.reshape(1,-1)))
-        print("noise: ",noise*self.ou_noise.sample())
+        #print("noise: ",noise*self.ou_noise.sample())
         action = action.detach().cpu().numpy().squeeze() + noise*self.ou_noise.sample()
         self.actor.train()
         return np.clip(action, -self.env_params['max_action'], self.env_params['max_action'])
@@ -164,14 +173,22 @@ class DDPG_HER:
             print("Episode length : {}, Episode reward : {}".format(ep_len, ep_ret))
 
     def _concat_inputs(self, o, g):
+        obs_norm = self.o_norm.normalize(o)
+        g_norm = self.g_norm.normalize(g)
+
         if o.shape[0] == 25:
-            inputs = np.concatenate([o, g])
+            inputs = np.concatenate([obs_norm, g_norm])
         else:
-            inputs = np.concatenate([o, g], axis = 1)
+            inputs = np.concatenate([obs_norm, g_norm], axis = 1)
         inputs = torch.tensor(inputs, dtype=torch.float32)#.unsqueeze(0)
         if self.args.cuda:
             inputs = inputs.cuda()
         return inputs
+
+    def _preproc_og(self, o, g):
+        o = np.clip(o, -self.args.clip_obs, self.args.clip_obs)
+        g = np.clip(g, -self.args.clip_obs, self.args.clip_obs)
+        return o, g
 
     def _her_util(self, transitions):
         ep_obs, ep_ag, ep_g, ep_actions = transitions
@@ -188,7 +205,16 @@ class DDPG_HER:
 
         return self.her_object._apply_hindsight(buffer_temp)
 
+    # this function will choose action for the agent and do the exploration
+    def _select_actions(self, pi):
+        action = pi.squeeze()
 
+        # random actions...
+        random_actions = np.random.uniform(low=-self.env_params['max_action'], high=self.env_params['max_action'], \
+                                           size=self.env_params['action_dim'])
+        # choose if use the random actions
+        action += np.random.binomial(1, 0.3, 1)[0] * (random_actions - action)
+        return action
 
     def train(self):
         original = sys.stdout
@@ -222,6 +248,7 @@ class DDPG_HER:
                 #print(g.shape)
                 inputs = self._concat_inputs(o,g)
                 action = self._generate_action_with_noise(inputs, self.args.noise_scale)
+                action = self._select_actions(action)
                 #print("[*] Action : {} ".format(action))
 
                 obs_nextt, reward, done, _ = self.env.step(action)
@@ -260,6 +287,18 @@ class DDPG_HER:
             #print("hind_experiences")
             #print(self.hind_experiences)
             num_transitions = len(self.hind_experiences['r'])
+
+            obs, g = self.hind_experiences['obs'], self.hind_experiences['g']
+            # pre process the obs and g
+            self.hind_experiences['obs'], self.hind_experiences['g'] = self._preproc_og(obs, g)
+            # update
+            self.o_norm.update(self.hind_experiences['obs'])
+            self.g_norm.update(self.hind_experiences['g'])
+            # recompute the stats
+            self.o_norm.recompute_stats()
+            self.g_norm.recompute_stats()
+
+
             #print(num_transitions)
             for i in range(num_transitions):
                 temp_done = 1 if (i == num_transitions-1) else 0
@@ -288,12 +327,17 @@ class DDPG_HER:
 
                 batch = self.buffer._sample_batch()
                 (obs, obs_next, actions, rewards, goals, dones, replay_types) = (torch.Tensor(batch['obs1']),
-                                                                   torch.Tensor(batch['obs2']),
-                                                                   torch.Tensor(batch['action']),
-                                                                   torch.Tensor(batch['reward']),
-                                                                   torch.Tensor(batch['goal']),
-                                                                   torch.Tensor(batch['done']),
-                                                                   (batch['replay_type']))
+                                                                                 torch.Tensor(batch['obs2']),
+                                                                                 torch.Tensor(batch['action']),
+                                                                                 torch.Tensor(batch['reward']),
+                                                                                 torch.Tensor(batch['goal']),
+                                                                                 torch.Tensor(batch['done']),
+                                                                                 (batch['replay_type']))
+
+
+
+                # start to do the update
+
 
                 if self.args.cuda:
                     obs = obs.cuda()
@@ -315,9 +359,15 @@ class DDPG_HER:
 
                 ##**************************************************
                 ## here either call the _concat_inputs function and do an unsqueeze(0) at the actor output since it gives out [m,4] and we need
+                obs, goals = self._preproc_og(obs.cpu(), goals.cpu())
+                obs_norm = self.o_norm.normalize(obs.detach().numpy())
+                g_norm = self.g_norm.normalize(goals.detach().numpy())
+                input      = self._concat_inputs(obs_norm, g_norm)
 
-                input      = self._concat_inputs(obs.cpu(), goals.cpu())
-                input_next = self._concat_inputs(obs_next.cpu(), goals.cpu())
+                obs_next, goals = self._preproc_og(obs_next.cpu(), goals.cpu())
+                obs_next_norm = self.o_norm.normalize(obs_next.detach().numpy())
+                g_next_norm = self.g_norm.normalize(goals.detach().numpy())
+                input_next = self._concat_inputs(obs_next_norm, g_next_norm)
                 #input_next = np.concatenate([obs_next.cpu(), goals.cpu()], axis = 1)
                 #print(input_next.shape)
                 #input_next = torch.tensor(input_next, dtype=torch.float32).unsqueeze(0)
@@ -382,7 +432,9 @@ class DDPG_HER:
                 print()
             sys.stdout = original
             # # Save model
-            torch.save(self.actor.state_dict(), os.path.join(self.args.model_dir, os.path.join(self.args.env_name,"model.pt")))
+            torch.save([self.o_norm.mean, self.o_norm.std, self.g_norm.mean, self.g_norm.std, self.actor.state_dict()], \
+                       os.path.join(self.args.model_dir, os.path.join(self.args.env_name,"model.pt")))
+            #torch.save(self.actor.state_dict(), os.path.join(self.args.model_dir, os.path.join(self.args.env_name,"model.pt")))
             torch.save(self.critic.state_dict(), os.path.join(self.args.model_dir, os.path.join(self.args.env_name,"critic_her.pth")))
             torch.save(self.actor_target.state_dict(), os.path.join(self.args.model_dir, os.path.join(self.args.env_name,"actor_target_her.pth")))
             torch.save(self.critic_target.state_dict(), os.path.join(self.args.model_dir, os.path.join(self.args.env_name,"critic_target_her.pth")))

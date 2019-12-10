@@ -17,8 +17,16 @@ def process_inputs(o, g, o_mean, o_std, g_mean, g_std, args):
 
 def test_agent(args):
     model = os.path.join("/home/abiyer/Documents/Controls project/hindsight-experience-replay-master/saved_models", os.path.join(args.env_name, 'model.pt'))
+    model = "/home/abiyer/CLionProjects/FetchSlide_DDPG_HER/saved_models/Pre_FetchPush-v1/model.pt"
     o_mean, o_std, g_mean, g_std, model = torch.load(model, map_location=lambda storage, loc: storage)
-
+    print(o_mean)
+    print("*********************")
+    print(o_std)
+    print("*********************")
+    print(g_mean)
+    print("*********************")
+    print(g_std)
+    print("*********************")
     env = gym.make(args.env_name)
     observation = env.reset()
     print("Initial observation: ", observation)

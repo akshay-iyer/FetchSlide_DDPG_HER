@@ -1,14 +1,13 @@
 import argparse
 from networks import actor_critic
 from train import *
-from test_hopper import *
-
+from test import *
 
 parser = argparse.ArgumentParser()
 
-parser.add_argument('--env_name',       type=str,   default='FetchSlide-v1', help='Fetch environment name')
-parser.add_argument('--epochs',         type=int,   default=1000,            help='Number of epochs')
-parser.add_argument('--timesteps',      type=int,   default=300,             help='the times to collect samples per epoch')
+parser.add_argument('--env_name',       type=str,   default='FetchPush-v1',  help='Fetch environment name')
+parser.add_argument('--epochs',         type=int,   default=5000,            help='Number of epochs')
+parser.add_argument('--timesteps',      type=int,   default=100,             help='number of iterations of network update')
 parser.add_argument('--start_steps',    type=int,   default=10000,           help='initial number of steps for random exploration')
 parser.add_argument('--max_ep_len',     type=int,   default=1000,            help='maximum length of episode')
 parser.add_argument('--buff_size',      type=int,   default=int(1e6),        help='size of replay buffer')
@@ -23,7 +22,8 @@ parser.add_argument('--noise_scale',    type=float, default=0.1,             hel
 parser.add_argument('--gamma',          type=float, default=0.98,            help='discount factor in bellman equation')
 parser.add_argument('--polyak',         type=float, default=0.999,           help='polyak value for averaging')
 parser.add_argument('--cuda',           type=bool,  default=False,           help='whether to use GPU')
-parser.add_argument('--her',            type=bool,  default=False,            help='whether to use HER')
+parser.add_argument('--her',            type=bool,  default=False,           help='whether to use HER')
+
 
 args = parser.parse_args()
 

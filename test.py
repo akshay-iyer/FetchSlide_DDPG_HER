@@ -16,13 +16,17 @@ def process_inputs(o, g, o_mean, o_std, g_mean, g_std, args):
     return inputs
 
 def test_agent(args):
-    path = os.path.join(args.model_dir, "actor.pth")
+    path = os.path.join(args.model_dir, os.path.join(args.env_name,"actor_target_her.pth"))
+    model = "/home/abiyer/CLionProjects/FetchSlide_DDPG_HER/saved_models/FetchPush-v1/model.pt"
+    o_mean, o_std, g_mean, g_std, model = torch.load(model, map_location=lambda storage, loc: storage)
+
+    print("[*] Model loaded from: ",path)
 
     #o_mean, o_std, g_mean, g_std, model = torch.load(model, map_location=lambda storage, loc: storage)
 
     env = gym.make(args.env_name)
     observation = env.reset()
-    print("Initial observation: ", observation)
+    #print("Initial observation: ", observation)
 
     env_params = {
         'obs_dim' : observation['observation'].shape[0], #(25,)
@@ -32,25 +36,34 @@ def test_agent(args):
     }
 
     # create instance of actor for testing model
-    actor = Actor(env_params)
-    actor.load_state_dict(torch.load(path))
+    actor = Actor(env_params, True)
+    #actor.load_state_dict(torch.load(path))
+    actor.load_state_dict(model)
     actor.eval()
 
     for episode in range(args.test_episodes):
         observation = env.reset()
         obs = observation['observation']
-        obs = torch.tensor(obs, dtype=torch.float32)
+        #obs = torch.tensor(obs, dtype=torch.float32)
         goal    = observation['desired_goal']
+        print(obs)
+        #print(goal)
+        # inputs = np.concatenate([obs, goal])
+        # inputs = torch.tensor(inputs, dtype=torch.float32)#.unsqueeze(0)
         for step in range(env._max_episode_steps):
             env.render()
             reward = 0
-            #state = process_inputs(obs, goal, o_mean, o_std, g_mean, g_std, args)
+            # inputs = np.concatenate([obs, goal])
+            # inputs = torch.tensor(inputs, dtype=torch.float32)#.unsqueeze(0)
+            #print(inputs)
+            state = process_inputs(obs, goal, o_mean, o_std, g_mean, g_std, args)
             # get actions for current state
             with torch.no_grad():
-                actions = actor(obs).cpu().numpy().squeeze()
+                actions = actor(state).cpu().numpy().squeeze()
             # carry out action
             obs_new, reward, _, info = env.step(actions)
             # get next state
+            #print(obs_new==obs)
             obs = obs_new['observation']
-            obs = torch.tensor(obs, dtype=torch.float32)
+            #obs = torch.tensor(obs, dtype=torch.float32)
         print("Episode number : {} Reward : {} Success : {}".format(episode, reward,info['is_success']))
