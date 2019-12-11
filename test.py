@@ -16,11 +16,11 @@ def process_inputs(o, g, o_mean, o_std, g_mean, g_std, args):
     return inputs
 
 def test_agent(args):
-    path = os.path.join(args.model_dir, os.path.join(args.env_name,"actor_target_her.pth"))
-    model = "/home/abiyer/CLionProjects/FetchSlide_DDPG_HER/saved_models/FetchPush-v1/model.pt"
+    #path = os.path.join(args.model_dir, os.path.join(args.env_name,"actor_target_her.pth"))
+    model = "/home/abiyer/CLionProjects/FetchSlide_DDPG_HER/saved_models/FetchPush-v1/model_scratch_again_puck.pt"
     o_mean, o_std, g_mean, g_std, model = torch.load(model, map_location=lambda storage, loc: storage)
 
-    print("[*] Model loaded from: ",path)
+    #print("[*] Model loaded from: ",path)
 
     #o_mean, o_std, g_mean, g_std, model = torch.load(model, map_location=lambda storage, loc: storage)
 
@@ -46,7 +46,7 @@ def test_agent(args):
         obs = observation['observation']
         #obs = torch.tensor(obs, dtype=torch.float32)
         goal    = observation['desired_goal']
-        print(obs)
+        #print(obs)
         #print(goal)
         # inputs = np.concatenate([obs, goal])
         # inputs = torch.tensor(inputs, dtype=torch.float32)#.unsqueeze(0)

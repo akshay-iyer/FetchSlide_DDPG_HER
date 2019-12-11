@@ -6,7 +6,7 @@ from test import *
 parser = argparse.ArgumentParser()
 
 parser.add_argument('--env_name',       type=str,   default='FetchPush-v1',  help='Fetch environment name')
-parser.add_argument('--epochs',         type=int,   default=5000,            help='Number of epochs')
+parser.add_argument('--epochs',         type=int,   default=7000,            help='Number of epochs')
 parser.add_argument('--timesteps',      type=int,   default=100,             help='number of iterations of network update')
 parser.add_argument('--start_steps',    type=int,   default=10000,           help='initial number of steps for random exploration')
 parser.add_argument('--max_ep_len',     type=int,   default=1000,            help='maximum length of episode')

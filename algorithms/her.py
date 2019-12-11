@@ -35,7 +35,10 @@ class HER:
         hind_experiences['r'] = []
         for i in range(num_transitions):
             hind_experiences['g'][i] = new_desired_goal
-            reward = self.reward_fn(hind_experiences['ag_next'][i], hind_experiences['g'][i], None)
+            if i == num_transitions-1 : 
+                reward = 0 #self.reward_fn(hind_experiences['ag_next'][i], hind_experiences['g'][i], None)
+            else:
+                reward = -1
             hind_experiences['r'].append(reward)
         hind_experiences['g_next'] = hind_experiences['g'][1:,:]
 

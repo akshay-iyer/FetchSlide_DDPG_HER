@@ -7,6 +7,7 @@ import copy
 import numpy as np
 import sys
 from time import localtime, strftime
+import time
 
 from networks.actor_critic import *
 from .her import *
@@ -121,7 +122,7 @@ class DDPG_HER_N:
         self.o_norm = normalizer(size=env_params['obs_dim'], default_clip_range=self.args.clip_range)
         self.g_norm = normalizer(size=env_params['goal_dim'], default_clip_range=self.args.clip_range)
 
-        actor_model_path = os.path.join(self.args.model_dir, os.path.join(self.args.env_name,"model.pt"))
+        actor_model_path = os.path.join(self.args.model_dir, os.path.join(self.args.env_name,"model_scratch.pt"))
         if os.path.isfile(actor_model_path):
             self.o_norm.mean, self.o_norm.std, self.g_norm.mean, self.g_norm.std, actor_model = torch.load(actor_model_path, map_location=lambda storage, loc: storage)
 
@@ -258,6 +259,8 @@ class DDPG_HER_N:
                 g_next = obs_nextt['desired_goal']
                 #print(color.BOLD + color.RED + "New goal : " + color.END, g_next)
 
+                ag = np.round(ag,2)
+
                 episode += 1
                 #print(color.BOLD + color.BLUE + "obs : " + color.END, o_next)
                 ep_obs.append(o.copy())
@@ -272,44 +275,55 @@ class DDPG_HER_N:
                 ag = ag_next
                 g  = g_next
 
+                # print("achieved: ",ag)
+                # print("desired: ",g)
+                # print()
+                #time.sleep(5)
+
             ep_obs.append(o.copy())
             ep_ag.append(ag.copy())
 
-            ep_obs     = np.array(ep_obs)
-            ep_ag      = np.array(ep_ag)
+            ep_obs     = (np.array(ep_obs))
+            ep_ag      = np.round(np.array(ep_ag),2)
             ep_g       = np.array(ep_g)
             ep_actions = np.array(ep_actions)
 
             #print(color.BOLD + color.YELLOW + "Size of buffer : " + color.END, self.buffer.size)
 
             # performing her
-            self.hind_experiences = self._her_util([ep_obs, ep_ag, ep_g, ep_actions])
-            #print("hind_experiences")
-            #print(self.hind_experiences)
-            num_transitions = len(self.hind_experiences['r'])
+            print("***************************")
+            print("unique: ", (np.unique(ep_ag)))
+            #print(ep_ag)
+            # perform her only if puck is pushed
+            if len(np.unique(ep_ag)) > 3:
+                #print("performing her")
+                self.hind_experiences = self._her_util([ep_obs, ep_ag, ep_g, ep_actions])
+                #print("hind_experiences")
+                #print(self.hind_experiences)
+                num_transitions = len(self.hind_experiences['r'])
 
-            obs, g = self.hind_experiences['obs'], self.hind_experiences['g']
-            # pre process the obs and g
-            self.hind_experiences['obs'], self.hind_experiences['g'] = self._preproc_og(obs, g)
-            # update
-            self.o_norm.update(self.hind_experiences['obs'])
-            self.g_norm.update(self.hind_experiences['g'])
-            # recompute the stats
-            self.o_norm.recompute_stats()
-            self.g_norm.recompute_stats()
+                obs, g = self.hind_experiences['obs'], self.hind_experiences['g']
+                # pre process the obs and g
+                self.hind_experiences['obs'], self.hind_experiences['g'] = self._preproc_og(obs, g)
+                # update
+                self.o_norm.update(self.hind_experiences['obs'])
+                self.g_norm.update(self.hind_experiences['g'])
+                # recompute the stats
+                self.o_norm.recompute_stats()
+                self.g_norm.recompute_stats()
 
 
-            #print(num_transitions)
-            for i in range(num_transitions):
-                temp_done = 1 if (i == num_transitions-1) else 0
-                self.buffer._store(self.hind_experiences['obs'][i],
-                                   self.hind_experiences['obs_next'][i],
-                                   self.hind_experiences['actions'][i],
-                                   self.hind_experiences['r'][i],
-                                   self.hind_experiences['g'][i],
-                                   temp_done, # done = 1 for last tuple
-                                   1  # type 0 for std, 1 for her
-                                   )
+                #print(num_transitions)
+                for i in range(num_transitions):
+                    temp_done = 1 if (i == num_transitions-1) else 0
+                    self.buffer._store(self.hind_experiences['obs'][i],
+                                       self.hind_experiences['obs_next'][i],
+                                       self.hind_experiences['actions'][i],
+                                       self.hind_experiences['r'][i],
+                                       self.hind_experiences['g'][i],
+                                       temp_done, # done = 1 for last tuple
+                                       1  # type 0 for std, 1 for her
+                                       )
 
             #print(color.BOLD + color.YELLOW + "No. of hind experiences : " + color.END, num_transitions)
             print(color.BOLD + color.YELLOW + "Size of buffer : " + color.END, self.buffer.size)
@@ -374,7 +388,7 @@ class DDPG_HER_N:
 
                 action_next = self.actor_target(input_next)
                 #print("[*] Action : {} Action_next : {}".format(action, action_next))
-
+     
                 q_next      = self.critic_target(input_next,action_next).detach()
 
                 bellman_backup = (rewards + self.args.gamma * (1-dones) * q_next).detach()
@@ -433,7 +447,7 @@ class DDPG_HER_N:
             sys.stdout = original
             # # Save model
             torch.save([self.o_norm.mean, self.o_norm.std, self.g_norm.mean, self.g_norm.std, self.actor.state_dict()], \
-                       os.path.join(self.args.model_dir, os.path.join(self.args.env_name,"model.pt")))
+                       os.path.join(self.args.model_dir, os.path.join(self.args.env_name,"model_scratch_again_puck.pt")))
             #torch.save(self.actor.state_dict(), os.path.join(self.args.model_dir, os.path.join(self.args.env_name,"model.pt")))
             torch.save(self.critic.state_dict(), os.path.join(self.args.model_dir, os.path.join(self.args.env_name,"critic_her.pth")))
             torch.save(self.actor_target.state_dict(), os.path.join(self.args.model_dir, os.path.join(self.args.env_name,"actor_target_her.pth")))
