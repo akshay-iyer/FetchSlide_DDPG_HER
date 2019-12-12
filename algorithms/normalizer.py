@@ -2,6 +2,10 @@ import threading
 import numpy as np
 from mpi4py import MPI
 
+
+'''
+Normalization code adapted from OpenAI baselines
+'''
 class normalizer:
     def __init__(self, size, eps=1e-2, default_clip_range=np.inf):
         self.size = size

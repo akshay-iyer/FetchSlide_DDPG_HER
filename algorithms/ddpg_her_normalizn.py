@@ -13,6 +13,8 @@ from networks.actor_critic import *
 from .her import *
 from .normalizer import *
 
+# trained model taken from https://github.com/TianhongDai/hindsight-experience-replay
+
 torch.set_default_tensor_type('torch.cuda.FloatTensor')
 class ReplayBuffer:
     def __init__(self, obs_dim, act_dim, goal_dim, size):
