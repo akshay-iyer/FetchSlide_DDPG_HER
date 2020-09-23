@@ -81,7 +81,7 @@ I performed the following variations:
 - Initialization using pre-trained weights
 
 
-## Meta
+## Contact
 
 Akshay Iyer – [@akshay_iyerr](https://twitter.com/akshay_iyerr) – akshay.iyerr@gmail.com
 
