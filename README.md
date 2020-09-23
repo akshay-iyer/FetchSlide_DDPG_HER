@@ -1,7 +1,11 @@
 # Reinforcement Learning for Robot Control
-> Train the Fetch Robot to slide the puck to the goal position
+> Train the Fetch Robot to slide/push/pick-and-place the puck to the goal position
 
-The aim of this project is to use reinforcement learning to make the Fetch Robot slide a puck to the goal position on the table. For the same, we implement Vanilla Deep Deterministic Policy Gradient (DDPG) [link to paper](https://arxiv.org/abs/1509.02971) and DDPG with Hindsight Experience Replay (HER) [Link to paper](https://arxiv.org/abs/1707.01495) to make use of failed experiences.
+The aim of this project is to use reinforcement learning to make the Fetch Robot perform different tasks like pushing/sliding/picking and placing a puck at the goal position on the table. For the same, I implemented Vanilla Deep Deterministic Policy Gradient (DDPG) [link to paper](https://arxiv.org/abs/1509.02971) and DDPG with Hindsight Experience Replay (HER) [Link to paper](https://arxiv.org/abs/1707.01495) to make use of failed experiences.
+
+I created two action-critic pairs, one lagging behind the other. Both the actor and the critic are created as fully connected networks with 4 layers and 256 hidden units each. The networks are defined in `networks/actor-critic.py`. The network contains ReLU activation function for all layers while the last layer has tanH activation. 
+
+The actor is fed the `observation` and `goal` concatenated while the critic is fed the concatenation of `observation`, `goal`, and the `action`. The actor predicts the `actions` while the critic predicts the `q-value`. The networks are implemented using the PyTorch framework and were run for 7000 epochs each with 800 timesteps on a Nvidia 1080Ti GPU. 
 
 ![](header.png)
 ![alt text](rl_demo.gif)
@@ -26,11 +30,7 @@ while read requirement; do conda install --yes $requirement; done < requirements
 ```
 
 ## Environments
-To perform the RL experiments, the wonderful OpenAI Gym
-
-## Datasets
-
-The scripts for downloading and loading the MNIST and CIFAR10 datasets are included in the `datasets_loader` folder. These scripts will be called automatically the first time the `main.py` script is run.
+To perform the RL experiments, the wonderful OpenAI Gym [link](https://gym.openai.com/envs/#robotics)
 
 ## Options
 
@@ -71,6 +71,16 @@ _Testing using pretrained model_
 python main.py --phase=test
 ```
 
+## Experiments
+
+I performed the following variations:
+- Implemented Vanilla DDPG tested on Pendulum-v0 and FetchPush
+- Implemented DDPG with HER using 'final' strategy for HER sampling 
+- Implemented Gaussian noise and OU noise
+- Tried with Input Normalization 
+- Initialization using pre-trained weights
+
+
 ## Meta
 
 Akshay Iyer – [@akshay_iyerr](https://twitter.com/akshay_iyerr) – akshay.iyerr@gmail.com
@@ -79,7 +89,7 @@ Akshay Iyer – [@akshay_iyerr](https://twitter.com/akshay_iyerr) – akshay.iye
 
 ## Contributing
 
-1. Fork it (<https://github.com/yourname/yourproject/fork>)
+1. Fork it (<https://github.com/akshay-iyer/FetchSlide_DDPG_HER/fork>)
 2. Create your feature branch (`git checkout -b feature/fooBar`)
 3. Commit your changes (`git commit -am 'Add some fooBar'`)
 4. Push to the branch (`git push origin feature/fooBar`)
