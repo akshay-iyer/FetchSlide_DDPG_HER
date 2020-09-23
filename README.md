@@ -16,7 +16,7 @@ python main.py --phase=test
 # Reinforcement Learning for Robot Control
 > Train the Fetch Robot to slide the puck to the goal position
 
-The aim of this project is to use reinforcement learning to make the Fetch Robot slide a puck to the goal position on the table. For the same, we implement Vanilla Deep Deterministic Policy Gradient (DDPG) [link to paper] and DDPG with Hindsight Experience Replay (HER) [Link to paper] to make use of failed experiences.
+The aim of this project is to use reinforcement learning to make the Fetch Robot slide a puck to the goal position on the table. For the same, we implement Vanilla Deep Deterministic Policy Gradient (DDPG) [link to paper](https://arxiv.org/abs/1509.02971) and DDPG with Hindsight Experience Replay (HER) [Link to paper](https://arxiv.org/abs/1707.01495) to make use of failed experiences.
 
 ![](header.png)
 ![alt text](https://github.com/akshay-iyer/FetchSlide_DDPG_HER/rl-demo.gif)
