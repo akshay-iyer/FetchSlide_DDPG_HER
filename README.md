@@ -1,7 +1,3 @@
-# Reinforcement Learning for Robot Control:
-The objective of the 
-DDPG + HER implementation in PyTorch for FetchSlide Robot
-
 ## Instructions to run : 
 
 1. Create a virtual environment and install required dependencies : 
@@ -109,11 +105,9 @@ python run_sort.py --M=100 --n=5 --l=4 --method=deterministic_neuralsort
 
 ## Meta
 
-Your Name – [@YourTwitter](https://twitter.com/akshay_iyerr) – YourEmail@example.com
+Akshay Iyer – [@akshay_iyerr](https://twitter.com/akshay_iyerr) – akshay.iyerr@gmail.com
 
-Distributed under the XYZ license. See ``LICENSE`` for more information.
-
-[https://github.com/yourname/github-link](https://github.com/akshay-iyer/)
+[Github](https://github.com/akshay-iyer/)
 
 ## Contributing
 
