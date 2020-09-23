@@ -1,36 +1,32 @@
-## Instructions to run : 
-
-1. Create a virtual environment and install required dependencies : 
-pip3 install -r requirements.txt
-
-2. To test using pretrained model : 
-python main.py --phase=test
-
-3. To train model using CPU :
-  python main.py --phase=train
-
-4. To train model using GPU (resolving bugs in gpu code): 
-  python main.py --phase=train --cuda=True
-
-
 # Reinforcement Learning for Robot Control
 > Train the Fetch Robot to slide the puck to the goal position
 
 The aim of this project is to use reinforcement learning to make the Fetch Robot slide a puck to the goal position on the table. For the same, we implement Vanilla Deep Deterministic Policy Gradient (DDPG) [link to paper](https://arxiv.org/abs/1509.02971) and DDPG with Hindsight Experience Replay (HER) [Link to paper](https://arxiv.org/abs/1707.01495) to make use of failed experiences.
 
 ![](header.png)
-![alt text](https://github.com/akshay-iyer/FetchSlide_DDPG_HER/rl-demo.gif)
+![alt text](rl_demo.gif)
 
 ## Requirements
 
 The codebase is implemented in Python 3.7. To install the necessary requirements, run the following commands:
 
+If you use the python shipped virtual environments:
 ```
+python3 -m venv <your_env_name>
+source your_env_name/bin/activate
 pip3 install -r requirements.txt
 ```
 
+If you use conda:
+```
+conda create <your_env_name>
+conda activate your_env_name 
+conda install --yes --file requirements.txt
+while read requirement; do conda install --yes $requirement; done < requirements.txt
+```
+
 ## Environments
-OpenAI Gym
+To perform the RL experiments, the wonderful OpenAI Gym
 
 ## Datasets
 
@@ -38,69 +34,41 @@ The scripts for downloading and loading the MNIST and CIFAR10 datasets are inclu
 
 ## Options
 
-Learning and inference of differentiable kNN models is handled by the `pytorch/run_dknn.py` script which provides the following command-line arguments:
+Training and inference of RL models to perform tasks on the various Fetch environments is handled by the `main.py` script which provides the following command-line arguments
 
 ```
-  --k INT                 number of nearest neighbors
-  --tau FLOAT             temperature of sorting operator
-  --nloglr FLOAT          negative log10 of learning rate
-  --method STRING         one of 'deterministic', 'stochastic'
-  --dataset STRING        one of 'mnist', 'fashion-mnist', 'cifar10'
-  --num_train_queries INT number of queries to evaluate during training.
-  --num_train_neighbors INT number of neighbors to consider during training.
-  --num_samples INT       number of samples for stochastic methods
-  --num_epochs INT        number of epochs to train
-  -resume                 start a new model, instead of loading an older one
-```
-
-Learning and inference of quantile-regression models is handled by the `tf/run_median.py` script, which provides the following command-line arguments:
-
-```
-  --M INT                 minibatch size
-  --n INT                 number of elements to compare at a time
-  --l INT                 number of digits in each multi-mnist dataset element
-  --tau FLOAT             temperature (either of sinkhorn or neuralsort relaxation)
-  --method STRING         one of 'vanilla', 'sinkhorn', 'gumbel_sinkhorn', 'deterministic_neuralsort', 'stochastic_neuralsort'
-  --n_s INT               number of samples for stochastic methods
-  --num_epochs INT        number of epochs to train
-  --lr FLOAT              initial learning rate
-```
-
-Learning and inference of sorting models is handled by the `tf/run_sort.py` script, which provides the following command-line arguments:
-
-```
-  --M INT                 minibatch size
-  --n INT                 number of elements to compare at a time
-  --l INT                 number of digits in each multi-mnist dataset element
-  --tau FLOAT             temperature (either of sinkhorn or neuralsort relaxation)
-  --method STRING         one of 'vanilla', 'sinkhorn', 'gumbel_sinkhorn', 'deterministic_neuralsort', 'stochastic_neuralsort'
-  --n_s INT               number of samples for stochastic methods
-  --num_epochs INT        number of epochs to train
-  --lr FLOAT              initial learning rate
-
+  --env_name             Fetch environment name
+  --epochs               number of epochs
+  --timesteps            number of iterations of network update
+  --start_steps          initial number of steps for random exploration
+  --max_ep_len           maximum length of episode
+  --buff_size            size of replay buffer
+  --phase                train or test
+  --model_dir            path to model directory
+  --test_episodes        number of episodes testing should run
+  --clip-obs             the clip ratio
+  --clip-range           the clip range
+  --lr_actor             learning rate for actor
+  --lr_critic            learning rate for critic
+  --noise_scale          scaling factor for gaussian noise on action
+  --gamma                discount factor in bellman equation
+  --polyak               polyak value for averaging
+  --cuda                 whether to use GPU
+  --her                  whether to use HER
 ```
 
 ## Examples
 
-_Training dKNN model to classify CIFAR10 digits_
+_Training model on CPU on the Fetch Environment <EnvName>_
 
 ```
-cd pytorch
-python run_dknn.py --k=9 --tau=64 --nloglr=3 --method=deterministic --dataset=cifar10
+python main.py --phase=train --env_name=EnvName --cuda=False 
 ```
 
-_Training quantile regression model to predict the median of sets of nine 5-digit numbers_
+_Testing using pretrained model_
 
 ```
-cd tf
-python run_median.py --M=100 --n=9 --l=5 --method=deterministic_neuralsort
-```
-
-_Training sorting model to sort sets of five 4-digit numbers_
-
-```
-cd tf
-python run_sort.py --M=100 --n=5 --l=4 --method=deterministic_neuralsort
+python main.py --phase=test
 ```
 
 ## Meta

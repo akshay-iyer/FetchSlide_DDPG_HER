@@ -8,13 +8,3 @@ q = self.q(torch.cat((x, a), dim=1))
 
 take in state and ac
 q_pi = self.q(torch.cat((x, pi), dim=1))
-
-Are actions used in the bellman equation predicted by main network or the target network?
-
-batch size of buffer 32 or 100?
-
-understand episode length and epochs
-
-100,300
-
-eval 200
